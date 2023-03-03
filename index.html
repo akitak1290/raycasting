@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ray casting</title>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+</body>
+</html>
+<script>
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  ctx.canvas.width = 600;
+  ctx.canvas.height = 400;
+
+  const shapes = [
+    [{x: 10, y: 10}, {x: 600, y: 10}, {x: 600, y: 400}, {x: 10, y: 400}], // border
+    [{x: 200, y: 50}, {x: 150, y: 140}, {x: 160, y: 60}],
+    [{x: 500, y: 150}, {x: 450, y: 130}, {x: 460, y: 100}],
+    [{x: 400, y: 350}, {x: 250, y: 330}, {x: 260, y: 300}]
+  ]
+  const center = {x: ctx.canvas.width/2, y: ctx.canvas.height/2}
+
+  function getIntersection(r, l){
+    // r:  ray of [{x: r_x, y: r_y}, {x: r_x1, y: r_y1}]
+    // l: line of [{x: l_x, y: l_y}, [y: l_x1, y: l_x1}]
+    //            initial     terminal
+  
+    // find directional vectors
+    const r_v = {x: r[1].x - r[0].x, y: r[1].y - r[0].y};
+    const l_v = {x:l[1].x - l[0].x, y: l[1].y - l[0].y};
+
+    // check if they are parallel
+    const r_m = Math.sqrt(r_v.x*r_v.x + r_v.y*r_v.y);
+    const l_m = Math.sqrt(l_v.x*l_v.x + l_v.y*l_v.y);
+    if (r_v.x/r_m == l_v.x/l_m && r_v.y/r_m == l_v.y/l_m){
+      return null
+    }
+
+    // solve for scalar t1, t2 in r = r0 + tv
+    // r_x1 = r_x + t1.r_v_x
+    // r_y1 = r_y + t1.r_v_y
+    // l_x1 = l_x + t2.l_v_x
+    // l_y1 = l_y + t2.l_v_y
+
+    // if the ray and line intersect, the terminal
+    // point for r and l is the same
+
+    // solve for T2
+    const T2 = (r_v.x*(l[0].y - r[0].y) + r_v.y*(r[0].x - l[0].x))
+                /(l_v.x*r_v.y - l_v.y*r_v.x)
+    
+    // solve for T1
+    const T1 = (l[0].x + l_v.x*T2 - r[0].x)/r_v.x
+
+    // make sure that the point is on the line segment
+    if (T1<0) {
+      return null;
+    }
+	  if(T2<0 || T2>1) {
+      return null
+    };
+
+    // plug back in to get intersection point
+    return {x: r[0].x + T1*r_v.x, y: r[0].y + T1*r_v.y, scalar: T1}
+  }
+
+  function draw(){
+    // clear canvas
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // walls
+    for(var i = 0; i < shapes.length; i++){ //for shape in array
+      ctx.beginPath();
+      ctx.moveTo(shapes[i][0].x, shapes[i][0].y);
+      for(var j = 1; j < shapes[i].length; j++){ //for vertex in shape
+        ctx.lineTo(shapes[i][j].x, shapes[i][j].y); //x, y
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    // ray
+    const ray = [
+      {x: center.x, y: center.y},
+      {x: Mouse.x, y: Mouse.y}
+    ]
+
+    // Find closest intersection
+    let closestIntersect = null;
+    let intersect = null;
+    for (let i = 0; i < shapes.length; i++){
+      for (let j = 0; j < shapes[i].length; j++){
+        intersect = getIntersection(ray, [shapes[i][j], shapes[i][(j+1)%shapes[i].length]]);
+        if (intersect){
+          if (!closestIntersect || intersect.scalar < closestIntersect.scalar){
+            closestIntersect = intersect;
+          }
+        }
+      }
+    }
+
+    if (closestIntersect != null){
+      ctx.beginPath();
+      ctx.moveTo(center.x, center.y);
+      ctx.lineTo(closestIntersect.x, closestIntersect.y);
+      ctx.stroke();
+    }
+  }
+  
+  // draw
+  // only redraw at new input
+  window.requestAnimationFrame = window.requestAnimationFrame 
+                                || window.webkitRequestAnimationFrame 
+                                || window.mozRequestAnimationFrame 
+                                || window.msRequestAnimationFrame;
+  var updateCanvas = true;
+  function drawLoop(){
+    requestAnimationFrame(drawLoop);
+    if(updateCanvas){
+      draw();
+      updateCanvas = false;
+    }
+  }
+  window.onload = function(){
+    drawLoop();
+  };
+
+  // MOUSE	
+  var Mouse = {
+    x: canvas.width/2,
+    y: canvas.height/2
+  };
+  canvas.onmousemove = function(event){	
+    Mouse.x = event.clientX;
+    Mouse.y = event.clientY;
+    updateCanvas = true;
+  };
+</script>
