@@ -8,3 +8,9 @@
 - make FOV dynamic
 - light direction is from ~~center~~ light source to mouse position
 - make light source movable
+
+# m3 
+In progress..
+- replace simple lines with tile-based for walls
+- add simple interactive canvas to create the tile-based map
+- some refractor and cleanup works
