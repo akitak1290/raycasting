@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSS RESET -->
+    <link rel="stylesheet" href="https://meyerweb.com/eric/tools/css/reset/reset.css">
+    <title>Document</title>
+</head>
+
+<body>
+    <canvas id="canvas" width="600px" height="300px" style="background-color: black"></canvas>
+    <button id="mapBtn">Get map</button>
+</body>
+<script>
+    /*
+        A simple interactive map to create a tile-based maze with walls
+        The resulting map can be print out to console
+    */
+
+    //if (canvas.getContext) {} else { //fallback if browser doesn't support canvas}
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    // 20x10 grid
+    const col = 20;
+    const row = 10;
+    // const map = [
+    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    //     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    //     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    // ];
+    const map = [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,1],
+        [1,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,1,0,1],
+        [1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+        [1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+        [1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,1],
+        [1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
+        [1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ]
+    const tileW = canvas.width / col;
+    const tileH = canvas.height / row;
+
+    const mapBtn = document.getElementById("mapBtn");
+
+    let m = { x: 0, y: 0 }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#FFFFFF";
+        // draw the map
+        for (let i = 0; i < map.length; i++){
+            for (let j = 0; j < map[i].length; j++){
+                if (map[i][j]){
+                    ctx.strokeRect((j) * tileW, (i) * tileH, tileW, tileH);
+                }
+            }
+        }
+           
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 1, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+
+    function genMap() {
+        let allVertices = [];
+        let tileVertices = [];
+        // get vertices' coordinate for each 'filled' tile
+        for (let i = 0; i < map.length; i++){
+            for (let j = 0; j < map[i].length; j++){
+                if (map[i][j]){
+                    const x = (j) * tileW;
+                    const y = (i) * tileH;
+                    tileVertices = [];
+                    tileVertices.push({x: x, y: y});
+                    tileVertices.push({x: x + tileW, y: y});
+                    tileVertices.push({x: x , y: y + tileH});
+                    tileVertices.push({x: x + tileW, y: y + tileH});
+                    allVertices.push(tileVertices);
+                }
+            }
+        }
+        return allVertices;
+        // return JSON.stringify(map);
+    }
+
+    mapBtn.onclick = function(event) {
+        console.log(genMap());
+    }
+
+    // redraw only with new input
+    let redraw = true;
+    canvas.onclick = function (event) {
+        const mx = event.clientX;
+        const my = event.clientY;
+        // flip tile's state
+        const tile = { x: Math.floor(mx / tileW), y: Math.floor(my / tileH) };
+        map[tile.y][tile.x] = map[tile.y][tile.x] ? 0 : 1;
+        m.x = mx;
+        m.y = my;
+        redraw = true;
+    }
+    function drawLoop() {
+        requestAnimationFrame(drawLoop);
+        if (redraw) {
+            draw();
+            redraw = false;
+        }
+    }
+    window.onload = function () {
+        drawLoop();
+    };
+
+</script>
+
+</html>
