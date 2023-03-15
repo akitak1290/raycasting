@@ -1,28 +1,34 @@
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const canvas2d = document.getElementById("2dcanvas");
+const ctx2d = canvas2d.getContext("2d");
+
+const canvas3d = document.getElementById("3dcanvas");
+const ctx3d = canvas3d.getContext("2d"); // although the name, it's still 2d...
+const canvas3dreso = Math.sqrt(Math.pow(canvas3d.width, 2) + Math.pow(canvas3d.height, 2));
+
 const FOVelement = document.getElementById("slider");
 
-const lightRayCnt = 90;
+const lightRayCnt = 101;
+
 const step = 3; // for moving the light source
 let FOV = FOVelement.value;
-let center = { x: ctx.canvas.width / 2, y: ctx.canvas.height / 2 }
+let center = { x: canvas2d.width / 2, y: canvas2d.height / 2 }
 const mouse = {
-    x: canvas.width/2,
-    y: canvas.height/2
+    x: canvas2d.width/2,
+    y: canvas2d.height/2
 }
 const map = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,1],
     [1,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,1,0,1],
     [1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
-    [1,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
-    [1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,1],
-    [1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1],
+    [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1],
+    [1,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,1,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ] //20x10
-const shapes = genMap(canvas.width, canvas.height, 20, 10, map);
+const shapes = genMap(canvas2d.width, canvas2d.height, 20, 10, map);
 
 /*
     Return pregenerated simple tile-based maze of 20x10 tiles
@@ -81,8 +87,8 @@ function getIntersection(r, l) {
     const l_v = { x: l[1].x - l[0].x, y: l[1].y - l[0].y };
 
     // check if they are parallel
-    const r_m = Math.sqrt(r_v.x * r_v.x + r_v.y * r_v.y);
-    const l_m = Math.sqrt(l_v.x * l_v.x + l_v.y * l_v.y);
+    const r_m = Math.sqrt(Math.pow(r_v.x, 2) + Math.pow(r_v.y, 2));
+    const l_m = Math.sqrt(Math.pow(l_v.x, 2) + Math.pow(l_v.y, 2));
     if (r_v.x / r_m == l_v.x / l_m && r_v.y / r_m == l_v.y / l_m) {
         return null
     }
@@ -130,30 +136,40 @@ function getIntersection(r, l) {
 */
 function genPoints(cx, cy, x, y, angle) {
     const rad = angle * Math.PI / 180;
+
+    // make x, y to be at a fixed distance (20px) from cx, cy
+    const dist = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y-cy, 2));
+    const t = 200 / dist;
+    const xt = ((1-t)*cx + t*x);
+    const yt = ((1-t)*cy + t*y);
+
+    // 2d rotation matrix:
+    // x' = x*cos - y*sin
+    // y' = x*sin + y*cos
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);
-    const nx = (cos * (x - cx)) + (sin * (y - cy)) + cx;
-    const ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
+    const nx = (cos * (xt - cx)) + (sin * (yt - cy)) + cx;
+    const ny = (cos * (yt - cy)) - (sin * (xt - cx)) + cy;
     return { x: Math.floor(nx), y: Math.floor(ny) };
 }
 
 function draw() {
-    // clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const raysLen = new Array(lightRayCnt).fill(0);
 
-    ctx.strokeStyle = 'white';
-
+    // ### 2d Canvas
+    ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
+    
     // draw walls
     for (var i = 0; i < shapes.length; i++) { //for shape in array
-        ctx.beginPath();
-        ctx.moveTo(shapes[i][0].x, shapes[i][0].y);
+        ctx2d.beginPath();
+        ctx2d.moveTo(shapes[i][0].x, shapes[i][0].y);
         for (var j = 1; j < shapes[i].length; j++) { //for vertex in shape
-            ctx.lineTo(shapes[i][j].x, shapes[i][j].y); //x, y
+            ctx2d.lineTo(shapes[i][j].x, shapes[i][j].y); //x, y
         }
-        ctx.closePath();
-        ctx.strokeStyle = "yellow";
-        // ctx.fill();
-        ctx.stroke();   
+        ctx2d.closePath();
+        ctx2d.fillStyle = "white";
+        ctx2d.fill();
+        // ctx2d.stroke();   
     }
 
     // generate a light cone and
@@ -167,8 +183,9 @@ function draw() {
                 y: center.y
             },
             genPoints(center.x, center.y, mouse.x, mouse.y, i * FOV / lightRayCnt - FOV / 2)
+            // genPoints(center.x, center.y, i * FOV / lightRayCnt - FOV / 2, 10)
         ];
-
+        
         // find closest intersection
         let closestIntersect = null;
         let intersect = null;
@@ -185,12 +202,33 @@ function draw() {
 
         // draw truncated ray from mouse to nearest wall
         if (closestIntersect != null) {
-            ctx.strokeStyle = "white";
-            ctx.beginPath();
-            ctx.moveTo(center.x, center.y);
-            ctx.lineTo(closestIntersect.x, closestIntersect.y);
-            ctx.stroke();
+            raysLen[i] = Math.sqrt(Math.pow(closestIntersect.x - center.x, 2) + Math.pow(closestIntersect.y -center.y, 2));
+            ctx2d.strokeStyle = "yellow";
+            ctx2d.beginPath();
+            ctx2d.moveTo(center.x, center.y);
+            ctx2d.lineTo(closestIntersect.x, closestIntersect.y);
+            ctx2d.stroke();
         }
+    }
+
+    // ### 3d Canvas
+    ctx3d.clearRect(0, 0, canvas3d.width, canvas3d.height);
+    const sliceW = canvas3d.width / lightRayCnt;
+    for(let i = 0; i < lightRayCnt; i++){
+        console.log(raysLen[i]/canvas3dreso);
+        hh = canvas3d.height / 2;
+        wallH = hh / raysLen[i];
+        asc = (raysLen[i] / canvas3dreso) * hh;
+        ctx3d.fillStyle = `rgba(255, 255, 255, ${raysLen[i]/canvas3dreso})`;
+        // ctx3d.fillStyle = `rgba(255, 255, 255)`;
+        // ctx3d.fillRect(i*sliceW, 0, sliceW, canvas3d.height);
+        ctx3d.fillStyle = ``;
+        // ctx3d.fillStyle = `rgba(153, 255, 255)`;
+        // ctx3d.fillRect(i*sliceW, 0, sliceW, asc);
+        ctx3d.fillStyle = `rgba(255, 255, 255, ${raysLen[i]/canvas3dreso})`;
+        ctx3d.fillRect(i*sliceW, asc, sliceW, (hh-asc)*2);
+        // ctx3d.fillStyle = `rgba(102, 204, 0)`;
+        // ctx3d.fillRect(i*sliceW, (hh-asc)*2, sliceW, (hh-asc)*2);
     }
 }
 
@@ -199,40 +237,41 @@ window.requestAnimationFrame = window.requestAnimationFrame
     || window.webkitRequestAnimationFrame
     || window.mozRequestAnimationFrame
     || window.msRequestAnimationFrame;
-let updateCanvas = true;
+let updateCanvas2d = true;
 function drawLoop() {
     requestAnimationFrame(drawLoop);
-    if (updateCanvas) {
+    if (updateCanvas2d) {
         draw();
-        updateCanvas = false;
+        updateCanvas2d = false;
     }
 }
 window.onload = function () {
     drawLoop();
 };
 
-canvas.onmousemove = function (event) {
+canvas2d.onmousemove = function (event) {
     mouse.x = event.clientX;
     mouse.y = event.clientY;
-    updateCanvas = true;
+    updateCanvas2d = true;
 };
-canvas.onkeydown = function (event) {
+canvas2d.onkeydown = function (event) {
+    console.log("hi")
     switch (event.code) {
         case "KeyW":
             center.y -= step;
-            updateCanvas = true;
+            updateCanvas2d = true;
             break;
         case "KeyS":
             center.y += step;
-            updateCanvas = true;
+            updateCanvas2d = true;
             break;
         case "KeyA":
             center.x -= step;
-            updateCanvas = true;
+            updateCanvas2d = true;
             break;
         case "KeyD":
             center.x += step;
-            updateCanvas = true;
+            updateCanvas2d = true;
             break;
         default:
         //ignore
@@ -240,7 +279,7 @@ canvas.onkeydown = function (event) {
 }
 FOVelement.oninput = function (event) {
     FOV = event.target.value;
-    updateCanvas = true;
+    updateCanvas2d = true;
 }
 
 //################### Unused ############################################################
@@ -254,7 +293,7 @@ FOVelement.oninput = function (event) {
 
 // Flip state of a tile on click event
 // let m = { x: 0, y: 0 }
-// canvas.onclick = function (event) {
+// canvas2d.onclick = function (event) {
 //     const mx = event.clientX;
 //     const my = event.clientY;
 //     // flip tile's state
